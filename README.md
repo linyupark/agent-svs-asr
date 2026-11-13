@@ -199,20 +199,20 @@ asr/
 │   └── smoke-test.sh         # 15 项自检（认证/格式/语种）
 ├── models/                   # 229 MB 模型 + VAD（挂载进容器，不入库）
 ├── samples/                  # 5 个语种测试样本（zh/en/ja/ko/yue）
-└── skill/asr-transcribe/     # 可给 agent 用的 skill（SKILL.md + asr.py + config.example.json）
+└── skill/svs-asr/     # 可给 agent 用的 skill（SKILL.md + asr.py + config.example.json）
 ```
 
 ## 5.1 给 agent 用（skill）
 
-`skill/asr-transcribe/` 是一个标准 skill：`SKILL.md` + 零依赖 CLI `asr.py` + `config.example.json`。
+`skill/svs-asr/` 是一个标准 skill：`SKILL.md` + 零依赖 CLI `asr.py` + `config.example.json`。
 装到 DSH 后 agent 就能直接说「把这段录音转成文字」：
 
 ```bash
-cp -r skill/asr-transcribe /root/.dsh/skills/        # 或放进你 agent 的 skills 目录
-cd /root/.dsh/skills/asr-transcribe
-cp config.example.json config.json                   # 真正的 config.json 里放 token，已被 git 忽略
-$EDITOR config.json                                  # base_url + api_key 填成自己的
-python asr.py health
+cp -r skill/svs-asr /root/.dsh/skills/   # 或放进你 agent 的 skills 目录
+cd /root/.dsh/skills/svs-asr
+cp config.example.json config.json       # 真 token 放这里；该文件已被 git 忽略
+$EDITOR config.json                      # 填 base_url + api_key
+python asr.py health                     # 期望输出 ok · model=sensevoice
 ```
 
 ---

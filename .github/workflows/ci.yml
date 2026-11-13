@@ -14,14 +14,14 @@ jobs:
         with:
           python-version: "3.11"
       - name: Python 语法检查
-        run: python -m py_compile app/server.py skill/asr-transcribe/asr.py
+        run: python -m py_compile app/server.py skill/svs-asr/asr.py
       - name: Shell 语法检查
         run: for f in scripts/*.sh; do bash -n "$f" && echo "ok $f"; done
       - name: 校验 compose.yml / 示例配置
         run: |
           pip install --quiet pyyaml
-          python -c "import json,yaml;yaml.safe_load(open('compose.yml'));json.load(open('skill/asr-transcribe/config.example.json'));print('yaml/json ok')"
+          python -c "import json,yaml;yaml.safe_load(open('compose.yml'));json.load(open('skill/svs-asr/config.example.json'));print('yaml/json ok')"
       - name: 确认没把模型或真 config 提交进来
         run: |
           test -z "$(git ls-files models)"
-          test -z "$(git ls-files skill/asr-transcribe/config.json)"
+          test -z "$(git ls-files skill/svs-asr/config.json)"

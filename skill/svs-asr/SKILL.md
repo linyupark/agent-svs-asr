@@ -1,9 +1,9 @@
 ---
-name: asr-transcribe
+name: svs-asr
 description: 调用自建 SenseVoice ASR 服务做语音转文字 / 生成字幕（HTTP + Bearer token）。当用户要求把音频或视频转成文字、做会议记录/播客转录、生成 SRT/VTT 字幕、或问「这段音频说了什么」时使用。需要服务已部署并可从当前环境访问。
 ---
 
-# asr-transcribe skill
+# svs-asr skill
 
 把本地音频/视频交给自建的 SenseVoice-Small 服务（OpenAI 兼容接口）转写。
 服务地址与 token 在 `config.json` 里，**先读它，不要凭记忆猜地址**。
