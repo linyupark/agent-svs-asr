@@ -253,5 +253,5 @@ docker ps -aq --filter publish=8001 | xargs -r docker rm -f  # 或者按占着 8
 
 ```bash
 docker compose down            # 保留 ./models
-docker image rm sensevoice-asr:1.1.0
+docker image rm sensevoice-asr:1.1.1
 ```

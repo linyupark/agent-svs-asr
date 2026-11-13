@@ -37,10 +37,24 @@ from starlette.concurrency import run_in_threadpool
 # --------------------------------------------------------------------------- #
 # configuration
 # --------------------------------------------------------------------------- #
-LOG_LEVEL = os.getenv("ASR_LOG_LEVEL", "info").upper()
-logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO),
+# uvicorn only knows a fixed set of level names (no 'warn' / 'fatal'), and an
+# unknown value there raises KeyError *before* the server binds the port, which
+# looks like a silent crash-loop in `docker compose ps`. Normalise defensively.
+_LOG_ALIASES = {"warn": "warning", "err": "error", "fatal": "critical",
+                "panic": "critical", "none": "critical"}
+_UVICORN_LEVELS = ("critical", "error", "warning", "info", "debug", "trace")
+_raw_log_level = (os.getenv("ASR_LOG_LEVEL") or "info").strip().lower()
+LOG_LEVEL = _LOG_ALIASES.get(_raw_log_level, _raw_log_level)
+_BAD_LOG_LEVEL = "" if LOG_LEVEL in _UVICORN_LEVELS else _raw_log_level
+if _BAD_LOG_LEVEL:
+    LOG_LEVEL = "info"
+
+logging.basicConfig(level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
                     format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("asr")
+if _BAD_LOG_LEVEL:
+    log.warning("unknown ASR_LOG_LEVEL=%r, falling back to 'info' "
+                "(accepted: %s)", _BAD_LOG_LEVEL, ", ".join(_UVICORN_LEVELS))
 
 MODEL_DIR = os.getenv("ASR_MODEL_DIR", "/models")
 MODEL_FILE = os.getenv("ASR_MODEL_FILE", "model.int8.onnx")
@@ -212,7 +226,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="SenseVoice ASR", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="SenseVoice ASR", version="1.1.1", lifespan=lifespan)
 
 
 @app.exception_handler(HTTPException)
@@ -613,4 +627,4 @@ async def index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("ASR_PORT", "8000")), log_level=LOG_LEVEL.lower())
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("ASR_PORT", "8000")), log_level=LOG_LEVEL)
