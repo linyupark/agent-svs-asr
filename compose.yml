@@ -31,6 +31,7 @@ services:
       ASR_QUEUE_TIMEOUT: ${ASR_QUEUE_TIMEOUT:-120}    # s to wait for a free slot -> 503
       ASR_IDLE_UNLOAD_SEC: ${ASR_IDLE_UNLOAD_SEC:-900} # free the model after N s idle (0 = never)
       # --- limits ----------------------------------------------------------
+      ASR_AUTO_DOWNLOAD: ${ASR_AUTO_DOWNLOAD:-1}      # 0 = 缺模型直接报错，绝不联网
       ASR_MAX_UPLOAD_MB: ${ASR_MAX_UPLOAD_MB:-300}
       ASR_MAX_AUDIO_SEC: ${ASR_MAX_AUDIO_SEC:-21600}
       ASR_WHOLE_MAX_SEC: ${ASR_WHOLE_MAX_SEC:-30}     # <=30 s: single-pass decode (most accurate)

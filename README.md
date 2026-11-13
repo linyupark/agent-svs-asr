@@ -59,6 +59,25 @@ bash scripts/fetch-models.sh          # 宿主机需要 curl
 docker compose run --rm --entrypoint bash asr /app/scripts/fetch-models.sh
 ```
 
+### 模型：不入库、不打进镜像、只下一次
+
+- 模型**不在 git 里**：`.gitignore` 有 `models/`、`*.onnx`，仓库只有 21 个文本/脚本文件 + 5 个测试样本。
+- 模型**也不在镜像里**：`Dockerfile` 只装 python + ffmpeg + 5 个 pip 包，`docker build` 离线就能过，不碰网络下模型。
+- 模型放在宿主机 `./models/`，bind mount 进容器。`docker compose build`、`up -d`、`down && up`、换镜像重建
+  都复用同一份文件，**不会重复下载**。
+- 唯一会下载的时机：三个文件不齐 且 `ASR_AUTO_DOWNLOAD=1`（默认）时，容器**启动那一次**下 230 MB。
+  离线/内网部署就把 `ASR_AUTO_DOWNLOAD=0` 写进 `.env`，再把 `models/` 整个拷过去。
+
+```
+models/
+├── model.int8.onnx   # 228 MB  SenseVoice-Small int8
+├── tokens.txt        # 309 KB
+└── silero_vad.onnx   # 629 KB
+```
+
+换盘或换目录：改 `compose.yml` 里 `- ./models:/models` 的左边；想用 docker 卷就换成
+`- asr-models:/models`，并在顶层声明 `volumes: { asr-models: {} }`（迁机器时不如直接拷目录省事）。
+
 验证：
 
 ```bash
