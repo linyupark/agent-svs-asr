@@ -1,0 +1,81 @@
+# SenseVoice-Small ASR — CPU only, ~0.4–0.6 GB RSS when loaded, hard cap 2 GB.
+#
+#   cp .env.example .env        # set ASR_API_KEY
+#   docker compose up -d --build
+#   curl -H "Authorization: Bearer $ASR_API_KEY" http://127.0.0.1:8001/health
+#
+# Models are fetched into ./models on first start (~230 MB, one time).
+name: asr
+
+services:
+  asr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    image: sensevoice-asr:1.1.0
+    container_name: asr
+    restart: unless-stopped
+
+    ports:
+      # host:container — keep it on the LAN, do not expose to the internet without TLS
+      - "${ASR_BIND_IP:-0.0.0.0}:${ASR_HOST_PORT:-8001}:8000"
+
+    environment:
+      # --- auth (required) -------------------------------------------------
+      ASR_API_KEY: ${ASR_API_KEY:?set ASR_API_KEY in .env}
+      # --- performance -----------------------------------------------------
+      ASR_NUM_THREADS: ${ASR_NUM_THREADS:-4}          # per-request intra-op threads
+      ASR_MAX_CONCURRENCY: ${ASR_MAX_CONCURRENCY:-3}  # parallel transcriptions
+      ASR_QUEUE_TIMEOUT: ${ASR_QUEUE_TIMEOUT:-120}    # s to wait for a free slot -> 503
+      ASR_IDLE_UNLOAD_SEC: ${ASR_IDLE_UNLOAD_SEC:-900} # free the model after N s idle (0 = never)
+      # --- limits ----------------------------------------------------------
+      ASR_MAX_UPLOAD_MB: ${ASR_MAX_UPLOAD_MB:-300}
+      ASR_MAX_AUDIO_SEC: ${ASR_MAX_AUDIO_SEC:-21600}
+      ASR_WHOLE_MAX_SEC: ${ASR_WHOLE_MAX_SEC:-30}     # <=30 s: single-pass decode (most accurate)
+      # --- behaviour -------------------------------------------------------
+      ASR_LANGUAGE: ${ASR_LANGUAGE:-auto}             # auto|zh|en|ja|ko|yue
+      ASR_USE_ITN: ${ASR_USE_ITN:-1}                  # inverse text normalisation (digits/units)
+      ASR_MODEL_NAME: ${ASR_MODEL_NAME:-sensevoice}   # the `model` name clients send
+      ASR_SEG_PAD: ${ASR_SEG_PAD:-0.15}
+      ASR_CUE_MAX_CHARS: ${ASR_CUE_MAX_CHARS:-34}     # subtitle line length
+      ASR_CUE_MAX_SEC: ${ASR_CUE_MAX_SEC:-9}          # subtitle line duration
+      ASR_LOG_LEVEL: ${ASR_LOG_LEVEL:-info}
+      TZ: ${TZ:-Asia/Shanghai}
+
+    volumes:
+      # model files live on the host: no 230 MB download on every recreate
+      - ./models:/models
+
+    # --- resource guards ---------------------------------------------------
+    mem_limit: 2g            # hard ceiling requested by the host user
+    memswap_limit: 2g        # same value => no swap, fail fast instead of thrashing
+    # cpus: 8                # optional: leave unset to use all 8C/16T of the 5825U
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - asr-net
+
+# Explicit user-defined bridge network (the "bridge" mode you asked for).
+# For the legacy default bridge instead, delete `networks:` above and this block,
+# then add `network_mode: bridge` to the service (you lose name resolution).
+networks:
+  asr-net:
+    name: asr-net
+    driver: bridge

@@ -1,0 +1,34 @@
+# ---- secrets / local config ----
+.env
+.env.*
+!.env.example
+skill/asr-transcribe/config.json
+
+# ---- 模型文件：部署时由 scripts/fetch-models.sh 下载，不入库 ----
+models/
+*.onnx
+*.bin
+*.pt
+*.part
+
+# ---- 运行 / 测试产物 ----
+tmp/
+out/
+smoke_out/
+*.log
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+uvlib/
+.uvcache/
+.uvpy/
+.python-version
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

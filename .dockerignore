@@ -1,0 +1,15 @@
+.venv/
+uvlib/
+.uvcache/
+.uvpy/
+models/
+samples/
+tmp/
+.env
+*.log
+__pycache__/
+*.pyc
+skill/
+
+.git
+.github

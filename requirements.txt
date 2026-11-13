@@ -1,0 +1,7 @@
+# Runtime deps for app/server.py — pinned, no torch, no onnxruntime.
+# CPU-only inference comes from the sherpa-onnx wheels (native libs bundled).
+fastapi==0.162.5
+uvicorn==0.54.0
+python-multipart==0.0.33
+numpy==1.26.4
+sherpa-onnx==2.0.1
