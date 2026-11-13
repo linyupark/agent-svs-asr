@@ -226,7 +226,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="SenseVoice ASR", version="1.1.1", lifespan=lifespan)
+app = FastAPI(title="SenseVoice ASR", version="1.1.2", lifespan=lifespan)
 
 
 @app.exception_handler(HTTPException)
@@ -480,6 +480,37 @@ def split_long(cues: List[dict]) -> List[dict]:
     return [c for c in out if c["text"].strip()]
 
 
+_PUNCT_CHARS = set("。！？!?；;…，,、：:.·—－-\"'“”‘’()（）[]【】{}《》<>「」『』")
+
+
+def _punct_only(text: str) -> bool:
+    return bool(text) and all(ch in _PUNCT_CHARS or ch.isspace() for ch in text)
+
+
+def tidy_cues(cues: List[dict]) -> List[dict]:
+    """Merge stray punctuation and micro cues back into the previous line.
+
+    Token-level cutting can leave a lone '。' (or a 60 ms fragment) as its own
+    cue, which renders as a punctuation-only subtitle.
+    """
+    out: List[dict] = []
+    for cue in cues:
+        text = (cue.get("text") or "").strip()
+        if not text:
+            continue
+        start, end = float(cue["start"]), max(float(cue["end"]), float(cue["start"]))
+        if out:
+            prev = out[-1]
+            short = end - start < 0.15
+            if (_punct_only(text) or short) and len(prev["text"]) + len(text) <= CUE_MAX_CHARS * 1.5:
+                prev["text"] = (prev["text"] + text if _punct_only(text)
+                                else join_texts([prev["text"], text]))
+                prev["end"] = round(max(prev["end"], end), 3)
+                continue
+        out.append({"start": round(start, 3), "end": round(end, 3), "text": text})
+    return out
+
+
 def srt_ts(sec: float, sep: str = ",") -> str:
     sec = max(0.0, sec)
     h, m, s = int(sec // 3600), int(sec % 3600 // 60), sec % 60
@@ -587,6 +618,7 @@ async def transcriptions(
             cues = cues_from_tokens(segments[0], duration)
         else:
             cues = split_long(merge_cues(segments))
+        cues = tidy_cues(cues)
         text = (join_texts([s["text"] for s in segments]) if len(segments) > 1
                 else (segments[0]["text"] if segments else ""))
 
